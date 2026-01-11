@@ -1,24 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:math' as math;
+
 import 'widgets/buttons.dart';
 import 'widgets/graph.dart';
 
 class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
 
+  @override
   State<CalculatorScreen> createState() => _CalculatorScreenState();
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen>
     with SingleTickerProviderStateMixin {
-  String display = "0"; // Display text
-  double? firstValue;   // First number before operation
-  String? operator;     // Current operation
-  final List<double> history = []; // History for graph
+  static const int _maxHistory = 50;
 
-  late AnimationController _controller; // Animation controller for graph
+  String display = "0";
+  double? firstValue;
+  String? operator;
+  final List<double> history = [];
 
+  late final AnimationController _controller;
+
+  @override
   void initState() {
     super.initState();
     _controller = AnimationController(
@@ -27,33 +31,69 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     )..forward();
   }
 
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
+  double? _tryParseDisplay() {
+    if (display == "Error") return null;
+    return double.tryParse(display);
+  }
+
+  void _resetIfError() {
+    if (display == "Error") display = "0";
+  }
+
   String format(double value) {
-    if (value == value.roundToDouble()) return value.toInt().toString();
-    return value.toStringAsFixed(4).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+    // remove -0.0 look
+    if (value.abs() < 1e-12) value = 0;
+
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+
+    // nicer formatting than fixed(4) in many cases
+    final s = value.toStringAsPrecision(12);
+    return s
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
   }
 
   void inputNumber(String num) {
     HapticFeedback.selectionClick();
     setState(() {
-      if (display == "0") display = num;
-      else display += num;
+      _resetIfError();
+      if (display == "0") {
+        display = num;
+      } else {
+        display += num;
+      }
     });
   }
 
   void inputDot() {
-    if (!display.contains(".")) setState(() => display += ".");
+    HapticFeedback.selectionClick();
+    setState(() {
+      _resetIfError();
+      if (!display.contains(".")) display += ".";
+    });
   }
 
   void deleteLast() {
     HapticFeedback.lightImpact();
     setState(() {
-      if (display.length > 1) display = display.substring(0, display.length - 1);
-      else display = "0";
+      if (display == "Error") {
+        display = "0";
+        return;
+      }
+
+      if (display.length > 1) {
+        display = display.substring(0, display.length - 1);
+      } else {
+        display = "0";
+      }
     });
   }
 
@@ -63,39 +103,51 @@ class _CalculatorScreenState extends State<CalculatorScreen>
       display = "0";
       firstValue = null;
       operator = null;
+      // لو عايز تمسح الجراف كمان:
+      // history.clear();
     });
   }
 
   void setOperator(String op) {
     HapticFeedback.selectionClick();
-    firstValue = double.tryParse(display);
-    operator = op;
-    display = "0"; // Start input for second number
+    setState(() {
+      final current = _tryParseDisplay();
+      if (current == null) return;
+
+      firstValue = current;
+      operator = op;
+      display = "0";
+    });
   }
 
   void calculateResult() {
     HapticFeedback.heavyImpact();
-    if (firstValue == null || operator == null) return;
-    final secondValue = double.tryParse(display);
-    if (secondValue == null) return;
+
+    final a = firstValue;
+    final op = operator;
+    if (a == null || op == null) return;
+
+    final b = _tryParseDisplay();
+    if (b == null) return;
 
     double result;
-    switch (operator) {
+
+    switch (op) {
       case '+':
-        result = firstValue! + secondValue;
+        result = a + b;
         break;
       case '-':
-        result = firstValue! - secondValue;
+        result = a - b;
         break;
       case '*':
-        result = firstValue! * secondValue;
+        result = a * b;
         break;
       case '/':
-        if (secondValue == 0) {
-          display = "Error";
+        if (b == 0) {
+          setState(() => display = "Error");
           return;
         }
-        result = firstValue! / secondValue;
+        result = a / b;
         break;
       default:
         return;
@@ -103,11 +155,35 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 
     setState(() {
       display = format(result);
-      history.add(result);          
+
+      history.add(result);
+      if (history.length > _maxHistory) {
+        history.removeAt(0);
+      }
+
       _controller.forward(from: 0);
     });
   }
 
+  List<Widget> _buildButtons() {
+    // عشان يشتغل سواء CustomButtons بيرجع List/Iterable أو Widget
+    final dynamic buttons = CustomButtons(
+      inputNumber: inputNumber,
+      inputDot: inputDot,
+      deleteLast: deleteLast,
+      clearAll: clearAll,
+      setOperator: setOperator,
+      calculateResult: calculateResult,
+    );
+
+    if (buttons is List<Widget>) return buttons;
+    if (buttons is Iterable<Widget>) return buttons.toList();
+    if (buttons is Widget) return [buttons];
+
+    return const <Widget>[];
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
@@ -121,7 +197,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
         child: SafeArea(
           child: Column(
             children: [
-              // App title
+              // Title
               Container(
                 alignment: Alignment.center,
                 padding: const EdgeInsets.all(16),
@@ -140,30 +216,48 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                   ),
                 ),
               ),
-              // Display screen
+
+              // Display
               Container(
                 alignment: Alignment.centerRight,
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                child: Text(display,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    display,
                     style: TextStyle(
                       fontSize: 60,
                       fontWeight: FontWeight.w400,
                       color: Colors.white,
                       shadows: [
-                        Shadow(color: Colors.greenAccent.shade400, blurRadius: 8),
+                        Shadow(
+                          color: Colors.greenAccent.shade400,
+                          blurRadius: 8,
+                        ),
                       ],
-                    )),
+                    ),
+                  ),
+                ),
               ),
+
               const SizedBox(height: 12),
-              // History graph
+
+              // Graph
               SizedBox(
                 height: 150,
                 child: CustomPaint(
-                  painter: HistoryGraph(history: history, animation: _controller),
+                  painter: HistoryGraph(
+                    history: history,
+                    animation: _controller,
+                  ),
                 ),
               ),
+
               const SizedBox(height: 24),
-              // Buttons grid
+
+              // Buttons
               Expanded(
                 child: GridView.count(
                   crossAxisCount: 4,
@@ -171,16 +265,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    CustomButtons(
-                      inputNumber: inputNumber,
-                      inputDot: inputDot,
-                      deleteLast: deleteLast,
-                      clearAll: clearAll,
-                      setOperator: setOperator,
-                      calculateResult: calculateResult,
-                    ),
-                  ].expand((i) => i).toList(),
+                  children: _buildButtons(),
                 ),
               ),
             ],

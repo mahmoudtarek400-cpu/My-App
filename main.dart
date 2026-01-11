@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'calculator_screen.dart';
 
 void main() => runApp(const MahmoudCalcApp());
@@ -6,6 +7,7 @@ void main() => runApp(const MahmoudCalcApp());
 class MahmoudCalcApp extends StatelessWidget {
   const MahmoudCalcApp({super.key});
 
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,

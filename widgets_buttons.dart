@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 class CustomButtons extends StatelessWidget {
-  final Function(String) inputNumber;
-  final VoidCallback inputDot, deleteLast, clearAll, calculateResult;
-  final Function(String) setOperator;
+  final ValueChanged<String> inputNumber;
+  final VoidCallback inputDot;
+  final VoidCallback deleteLast;
+  final VoidCallback clearAll;
+  final ValueChanged<String> setOperator;
+  final VoidCallback calculateResult;
 
   const CustomButtons({
     super.key,
@@ -15,101 +18,195 @@ class CustomButtons extends StatelessWidget {
     required this.calculateResult,
   });
 
+  static const double _radius = 24;
+  static const EdgeInsets _padding = EdgeInsets.all(12);
+
+  @override
   Widget build(BuildContext context) {
-    // All buttons in GridView
-    List<Widget> buttons = [
-      clearButton(),
-      opButton('/'),
-      opButton('*'),
-      delButton(),
-      button('7'),
-      button('8'),
-      button('9'),
-      opButton('-'),
-      button('4'),
-      button('5'),
-      button('6'),
-      opButton('+'),
-      button('1'),
-      button('2'),
-      button('3'),
-      equalButton(),
-      button('0', flex: 2),
-      dotButton(),
+    // 4x4 grid (16 items) + bottom row (0 wide + .)
+    final gridButtons = <Widget>[
+      _actionButton(
+        label: 'C',
+        color: Colors.redAccent,
+        onTap: clearAll,
+        textColor: Colors.white,
+      ),
+      _opButton('/'),
+      _opButton('*'),
+      _iconButton(
+        icon: Icons.backspace_outlined,
+        color: Colors.purpleAccent,
+        onTap: deleteLast,
+      ),
+      _numberButton('7'),
+      _numberButton('8'),
+      _numberButton('9'),
+      _opButton('-'),
+      _numberButton('4'),
+      _numberButton('5'),
+      _numberButton('6'),
+      _opButton('+'),
+      _numberButton('1'),
+      _numberButton('2'),
+      _numberButton('3'),
+      _equalButton(),
     ];
 
-    return GridView.count(
-      crossAxisCount: 4,
-      padding: const EdgeInsets.all(12),
-      children: buttons,
+    return Padding(
+      padding: _padding,
+      child: Column(
+        children: [
+          Expanded(
+            child: GridView.count(
+              crossAxisCount: 4,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.2,
+              physics: const NeverScrollableScrollPhysics(),
+              children: gridButtons,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: _numberButton('0'),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 1,
+                child: _dotButton(),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  // ----------------- Neon Buttons -----------------
+  // ----------------- Button Builders -----------------
 
-  Widget button(String value, {int flex = 1}) => GestureDetector(
-        onTap: () => inputNumber(value),
-        child: neonContainer(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+  Widget _numberButton(String value) {
+    return _tapTile(
+      onTap: () => inputNumber(value),
+      child: Text(
+        value,
+        style: const TextStyle(
+          fontSize: 28,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
         ),
-      );
+      ),
+    );
+  }
 
-  Widget dotButton() => GestureDetector(
-        onTap: inputDot,
-        child: neonContainer(
-          child: const Text(
-            '.',
-            style: TextStyle(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+  Widget _dotButton() {
+    return _tapTile(
+      onTap: inputDot,
+      child: const Text(
+        '.',
+        style: TextStyle(
+          fontSize: 28,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
         ),
-      );
+      ),
+    );
+  }
 
-  Widget delButton() => GestureDetector(
-        onTap: deleteLast,
-        child: neonContainer(
-          color: Colors.purpleAccent,
-          child: const Icon(Icons.backspace_outlined, color: Colors.white, size: 28),
+  Widget _opButton(String op) {
+    return _tapTile(
+      color: Colors.orangeAccent,
+      onTap: () => setOperator(op),
+      child: Text(
+        op,
+        style: const TextStyle(
+          fontSize: 28,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
         ),
-      );
+      ),
+    );
+  }
 
-  Widget clearButton() => GestureDetector(
-        onTap: clearAll,
-        child: neonContainer(
-          color: Colors.redAccent,
-          child: const Text('C', style: TextStyle(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold)),
+  Widget _equalButton() {
+    return _tapTile(
+      color: Colors.greenAccent,
+      onTap: calculateResult,
+      child: const Text(
+        '=',
+        style: TextStyle(
+          fontSize: 28,
+          color: Colors.black,
+          fontWeight: FontWeight.bold,
         ),
-      );
+      ),
+    );
+  }
 
-  Widget equalButton() => GestureDetector(
-        onTap: calculateResult,
-        child: neonContainer(
-          color: Colors.greenAccent,
-          child: const Text('=', style: TextStyle(fontSize: 28, color: Colors.black, fontWeight: FontWeight.bold)),
+  Widget _actionButton({
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+    required Color textColor,
+  }) {
+    return _tapTile(
+      color: color,
+      onTap: onTap,
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 28,
+          color: textColor,
+          fontWeight: FontWeight.bold,
         ),
-      );
+      ),
+    );
+  }
 
-  Widget opButton(String op) => GestureDetector(
-        onTap: () => setOperator(op),
-        child: neonContainer(
-          color: Colors.orangeAccent,
-          child: Text(op, style: const TextStyle(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold)),
+  Widget _iconButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return _tapTile(
+      color: color,
+      onTap: onTap,
+      child: Icon(
+        icon,
+        color: Colors.white,
+        size: 28,
+      ),
+    );
+  }
+
+  // ----------------- Core Tile -----------------
+
+  Widget _tapTile({
+    required Widget child,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(_radius),
+        onTap: onTap,
+        child: _neonContainer(
+          color: color,
+          child: child,
         ),
-      );
+      ),
+    );
+  }
 
-  // ----------------- Neon Container -----------------
-  Widget neonContainer({required Widget child, Color? color}) {
+  Widget _neonContainer({required Widget child, Color? color}) {
     final baseColor = color ?? Colors.cyanAccent;
+
     return Container(
-      margin: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(_radius),
         gradient: LinearGradient(
           colors: [baseColor.withOpacity(0.7), baseColor],
           begin: Alignment.topLeft,
@@ -120,13 +217,11 @@ class CustomButtons extends StatelessWidget {
             color: baseColor.withOpacity(0.7),
             blurRadius: 12,
             spreadRadius: 1,
-            offset: const Offset(0, 0),
           ),
           BoxShadow(
             color: baseColor.withOpacity(0.5),
             blurRadius: 8,
             spreadRadius: 1,
-            offset: const Offset(0, 0),
           ),
         ],
       ),
@@ -134,3 +229,4 @@ class CustomButtons extends StatelessWidget {
     );
   }
 }
+        

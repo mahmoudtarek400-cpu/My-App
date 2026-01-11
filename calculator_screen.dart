@@ -15,7 +15,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     with SingleTickerProviderStateMixin {
   static const int _maxHistory = 50;
 
-  String display = "0";
+  String display = '0';
   double? firstValue;
   String? operator;
   final List<double> history = [];
@@ -37,24 +37,23 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     super.dispose();
   }
 
+  void _resetIfError() {
+    if (display == 'Error') display = '0';
+  }
+
   double? _tryParseDisplay() {
-    if (display == "Error") return null;
+    if (display == 'Error') return null;
     return double.tryParse(display);
   }
 
-  void _resetIfError() {
-    if (display == "Error") display = "0";
-  }
-
-  String format(double value) {
-    // remove -0.0 look
+  String _format(double value) {
+    // removes -0.0
     if (value.abs() < 1e-12) value = 0;
 
     if (value == value.roundToDouble()) {
       return value.toInt().toString();
     }
 
-    // nicer formatting than fixed(4) in many cases
     final s = value.toStringAsPrecision(12);
     return s
         .replaceFirst(RegExp(r'0+$'), '')
@@ -65,11 +64,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     HapticFeedback.selectionClick();
     setState(() {
       _resetIfError();
-      if (display == "0") {
-        display = num;
-      } else {
-        display += num;
-      }
+      display = (display == '0') ? num : (display + num);
     });
   }
 
@@ -77,22 +72,22 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     HapticFeedback.selectionClick();
     setState(() {
       _resetIfError();
-      if (!display.contains(".")) display += ".";
+      if (!display.contains('.')) display += '.';
     });
   }
 
   void deleteLast() {
     HapticFeedback.lightImpact();
     setState(() {
-      if (display == "Error") {
-        display = "0";
+      if (display == 'Error') {
+        display = '0';
         return;
       }
 
       if (display.length > 1) {
         display = display.substring(0, display.length - 1);
       } else {
-        display = "0";
+        display = '0';
       }
     });
   }
@@ -100,10 +95,11 @@ class _CalculatorScreenState extends State<CalculatorScreen>
   void clearAll() {
     HapticFeedback.mediumImpact();
     setState(() {
-      display = "0";
+      display = '0';
       firstValue = null;
       operator = null;
-      // لو عايز تمسح الجراف كمان:
+
+      // لو عايز زرار C يمسح الجراف كمان فعّل السطر ده:
       // history.clear();
     });
   }
@@ -116,7 +112,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 
       firstValue = current;
       operator = op;
-      display = "0";
+      display = '0';
     });
   }
 
@@ -144,7 +140,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
         break;
       case '/':
         if (b == 0) {
-          setState(() => display = "Error");
+          setState(() => display = 'Error');
           return;
         }
         result = a / b;
@@ -154,7 +150,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
     }
 
     setState(() {
-      display = format(result);
+      display = _format(result);
 
       history.add(result);
       if (history.length > _maxHistory) {
@@ -163,24 +159,6 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 
       _controller.forward(from: 0);
     });
-  }
-
-  List<Widget> _buildButtons() {
-    // عشان يشتغل سواء CustomButtons بيرجع List/Iterable أو Widget
-    final dynamic buttons = CustomButtons(
-      inputNumber: inputNumber,
-      inputDot: inputDot,
-      deleteLast: deleteLast,
-      clearAll: clearAll,
-      setOperator: setOperator,
-      calculateResult: calculateResult,
-    );
-
-    if (buttons is List<Widget>) return buttons;
-    if (buttons is Iterable<Widget>) return buttons.toList();
-    if (buttons is Widget) return [buttons];
-
-    return const <Widget>[];
   }
 
   @override
@@ -198,11 +176,10 @@ class _CalculatorScreenState extends State<CalculatorScreen>
           child: Column(
             children: [
               // Title
-              Container(
-                alignment: Alignment.center,
+              Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  "MAHMOUD CALC",
+                  'MAHMOUD CALC',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -257,15 +234,15 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 
               const SizedBox(height: 24),
 
-              // Buttons
+              // Buttons (CustomButtons handles its own layout)
               Expanded(
-                child: GridView.count(
-                  crossAxisCount: 4,
-                  childAspectRatio: 1.2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: _buildButtons(),
+                child: CustomButtons(
+                  inputNumber: inputNumber,
+                  inputDot: inputDot,
+                  deleteLast: deleteLast,
+                  clearAll: clearAll,
+                  setOperator: setOperator,
+                  calculateResult: calculateResult,
                 ),
               ),
             ],

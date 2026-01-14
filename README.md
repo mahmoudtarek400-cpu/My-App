@@ -1,16 +1,20 @@
-# my_app
+# Mahmoud Calculator (Flutter)
 
-A new Flutter project.
+A simple Flutter calculator app with a small animated history graph.
 
-## Getting Started
+## Requirements
+- Flutter SDK (stable)
+- Dart (comes with Flutter)
+- For Android run:
+  - Android Studio + Android SDK
+  - An Android emulator or a real device with USB debugging
 
-This project is a starting point for a Flutter application.
+## How to Run
 
-A few resources to get you started if this is your first Flutter project:
+### 1) Clone the repo
+```bash
+git clone https://github.com/mahmoudtarek400-cpu/My-App.git
+cd My-App
+flutter pub get
+flutter run
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.

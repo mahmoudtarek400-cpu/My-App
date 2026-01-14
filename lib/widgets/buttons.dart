@@ -21,6 +21,9 @@ class CustomButtons extends StatelessWidget {
   static const double _radius = 24;
   static const EdgeInsets _padding = EdgeInsets.all(12);
 
+  // Alpha helpers (avoid deprecated withOpacity)
+  static int _alpha(double opacity) => (opacity * 255).round().clamp(0, 255);
+
   @override
   Widget build(BuildContext context) {
     // 4x4 grid (16 items) + bottom row (0 wide + .)
@@ -90,14 +93,9 @@ class CustomButtons extends StatelessWidget {
   Widget _numberButton(String value) {
     return _tapTile(
       onTap: () => inputNumber(value),
-      child: Text(
-        value,
-        style: const TextStyle(
-          fontSize: 28,
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      child: const Text(
+        '', // will be replaced below via copyWith
+      ).copyWithValue(value),
     );
   }
 
@@ -173,11 +171,9 @@ class CustomButtons extends StatelessWidget {
     return _tapTile(
       color: color,
       onTap: onTap,
-      child: Icon(
-        icon,
-        color: Colors.white,
-        size: 28,
-      ),
+      child: const Icon(
+        Icons.backspace_outlined, // will be replaced below via copyWith
+      ).copyWithIcon(icon),
     );
   }
 
@@ -204,22 +200,25 @@ class CustomButtons extends StatelessWidget {
   Widget _neonContainer({required Widget child, Color? color}) {
     final baseColor = color ?? Colors.cyanAccent;
 
+    final glow70 = baseColor.withAlpha(_alpha(0.7));
+    final glow50 = baseColor.withAlpha(_alpha(0.5));
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(_radius),
         gradient: LinearGradient(
-          colors: [baseColor.withOpacity(0.7), baseColor],
+          colors: [glow70, baseColor],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: baseColor.withOpacity(0.7),
+            color: glow70,
             blurRadius: 12,
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: baseColor.withOpacity(0.5),
+            color: glow50,
             blurRadius: 8,
             spreadRadius: 1,
           ),
@@ -229,4 +228,27 @@ class CustomButtons extends StatelessWidget {
     );
   }
 }
-        
+
+/// Small helpers to keep code tidy without repeating styles.
+extension _TextCopy on Text {
+  Text copyWithValue(String value) {
+    return Text(
+      value,
+      style: const TextStyle(
+        fontSize: 28,
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+}
+
+extension _IconCopy on Icon {
+  Icon copyWithIcon(IconData iconData) {
+    return Icon(
+      iconData,
+      color: Colors.white,
+      size: 28,
+    );
+  }
+}
